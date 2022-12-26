@@ -1,12 +1,7 @@
 <?php
 defined('BASEPATH') or exit('No direct script access allowed');
 
-require 'vendor/autoload.php';
-use PhpOffice\PhpSpreadsheet\Spreadsheet;
-use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
-use PhpOffice\PhpSpreadsheet\Style\Border;
-use PhpOffice\PhpSpreadsheet\Style\Color;
-class Admin extends CI_Controller
+class Config extends CI_Controller
 {
     public function __construct()
     {
@@ -16,6 +11,7 @@ class Admin extends CI_Controller
         is_admin();
         $this->load->helper('tglindo');
         $this->load->helper('rupiah');
+        $this->load->helper('jhanojan');
         $this->load->model('Admin_model', 'admin');
     }
     public function index_bk(){
@@ -1797,139 +1793,93 @@ class Admin extends CI_Controller
 
     public function payslip($pegawai,$periode)
     {
-        $this->load->helper('jhanojan');
+
+        $this->form_validation->set_rules('bulan_tahun', 'Bulan Tahun', 'required|trim');
+
+        if ($this->form_validation->run() == FALSE) {
             $data['title'] = 'Slip Gaji Pegawai';
             $data['user'] = $this->db->get_where('mst_user', ['username' => $this->session->userdata('username')])->row_array();
             $data['payroll'] = $this->db->get('tb_payroll')->result_array();
-            $data['payroll_employee'] = $this->admin->getPayrollEmployeeByBulanTahun($pegawai,$periode)->row_array();
-            $data['pegawai']=$pegawai;
-            $data['periode']=$periode;
+            $data['payroll_employee'] = $this->admin->getAllPayrollEmployee()->result_array();
+            
             $this->load->view('templates/header', $data);
             $this->load->view('templates/sidebar_admin', $data);
             $this->load->view('admin/pegawai/slippay', $data);
             $this->load->view('templates/footer');
-        
+        } else {
+            $data['title'] = 'Payroll Pegawai';
+            $data['user'] = $this->db->get_where('mst_user', ['username' => $this->session->userdata('username')])->row_array();
+            $data['payroll'] = $this->db->get('tb_payroll')->result_array();
+            $data['payroll_employee'] = $this->admin->getAllPayrollEmployeeByBulanTahun($this->input->post('bulan_tahun'))->result_array();
+            
+            $this->load->view('templates/header', $data);
+            $this->load->view('templates/sidebar_admin', $data);
+            $this->load->view('admin/pegawai/slippay', $data);
+            $this->load->view('templates/footer');
+        }
         
     }
-    public function export_payslip($pegawai,$periode){
 
+	function form($id=null){
+        $data['title'] = 'Konfigurasi Perusahaan';
+        $data['user'] = $this->db->get_where('mst_user', ['username' => $this->session->userdata('username')])->row_array();
+		$setup=GetAll('tb_setup_company')->num_rows();
+		$id=($setup==0 ? NULL : 1);
 		
+		if($id!=NULL){
+			$filter=array('id'=>'where/'.$id);
+			$data['type']='Edit';
+		$data['list']=GetAll('tb_setup_company',$filter);
+		}
+		else{
+			$data['type']='New';
+		}
+		//End Global
 		
-        $this->load->helper('jhanojan');
-		$content = $this->admin->getPayrollEmployeeByBulanTahun($pegawai,$periode)->row();
-       
-		$data=$content;
-        
-		$spreadsheet = new Spreadsheet();
-		$sheet = $spreadsheet->getActiveSheet();
-		// Buat sebuah variabel untuk menampung pengaturan style dari header tabel
-		$style_col = [
-			  'font' => ['bold' => true], // Set font nya jadi bold
-			  'alignment' => [
-			'horizontal' => \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER, // Set text jadi ditengah secara horizontal (center)
-			'vertical' => \PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER // Set text jadi di tengah secara vertical (middle)
-			],
-			'borders' => [
-				'top' => ['borderStyle'  => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN], // Set border top dengan garis tipis
-				'right' => ['borderStyle'  => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN],  // Set border right dengan garis tipis
-				'bottom' => ['borderStyle'  => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN], // Set border bottom dengan garis tipis
-				'left' => ['borderStyle'  => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN] // Set border left dengan garis tipis
-			]
-		];
-	// Buat sebuah variabel untuk menampung pengaturan style dari isi tabel
-			$style_row = [
-			'alignment' => [
-				'vertical' => \PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER // Set text jadi di tengah secara vertical (middle)
-			],
-			'borders' => [
-				'top' => ['borderStyle'  => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN], // Set border top dengan garis tipis
-				'right' => ['borderStyle'  => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN],  // Set border right dengan garis tipis
-				'bottom' => ['borderStyle'  => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN], // Set border bottom dengan garis tipis
-				'left' => ['borderStyle'  => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN] // Set border left dengan garis tipis
-			]
-			];
-			/*
-            $colModel['idnya'] = array('ID',50,TRUE,'left',2,TRUE);
-            $colModel['id'] = array('ID',100,TRUE,'left',2,TRUE);
-            $colModel['job_'] = array('Job Generate',110,TRUE,'left',2);
-            $colModel['status_redeem'] = array('Status Redeem',110,TRUE,'left',2);
-            $colModel['email'] = array('Pembeli',180,TRUE,'left',2);
-            $colModel['order_id'] = array('Order ID',180,TRUE,'left',2);
-            $colModel['package_'] = array('Paket',180,TRUE,'left',2);
-            $colModel['code'] = array('Code',180,TRUE,'left',2);
-            $colModel['createdAt'] = array('Create Date',110,TRUE,'left',2);
-            $colModel['expiredAt'] = array('Expired Date',110,TRUE,'left',2);
-            $colModel['redeemby'] = array('Diredeem Oleh',180,TRUE,'left',2);
-            $colModel['tgl_redeem'] = array('Tgl Redeem',110,TRUE,'left',2);
-			*/
-			$sheet->setCellValue('A2', getcompanyname()); // Set kolom A1 dengan tulisan "DATA SISWA"
-			//$sheet->mergeCells('A1:E1'); // Set Merge Cell pada kolom A1 sampai E1
-			$sheet->getStyle('A2')->getFont()->setBold(true); // Set bold kolom A1
-			// Buat header tabel nya pada baris ke 3
-			$sheet->setCellValue('A3', "SLIP GAJI"); 
-			$sheet->setCellValue('A4', "BULAN"); 
-			$sheet->setCellValue('B4', $data->bulan_tahun); 
-			$sheet->setCellValue('A7', "NAMA"); 
-			$sheet->setCellValue('B7', $data->nama_lengkap); 
-			$sheet->setCellValue('A8', "ID KARYAWAN"); 
-			$sheet->setCellValue('B8', $data->kode_pegawai); 
-			$sheet->setCellValue('A10', "PENDAPATAN");
-			$sheet->setCellValue('A11', "1.");
-			$sheet->setCellValue('B11', "UPAH POKOK");
-			$sheet->setCellValue('C11', $data->amount_salary);
-			$sheet->setCellValue('A12', "2.");
-			$sheet->setCellValue('B12', "Allowance");
-			$sheet->setCellValue('C12', $data->amount_total_allowance);
-			$sheet->setCellValue('A13', "3.");
-			$sheet->setCellValue('B13', "Pengurangan");
-			$sheet->setCellValue('C13', $data->amount_total_deduction);
-			$sheet->setCellValue('A14', "Total");
-			$sheet->setCellValue('C14', $data->net_salary);
-			$sheet->getStyle('A14')->getFont()->setBold(true); 
-			$sheet->getStyle('C14')->getFont()->setBold(true); 
-			// Apply style header yang telah kita buat tadi ke masing-masing kolom header
-			//$sheet->getStyle('A3')->applyFromArray($style_col);
-			//$sheet->getStyle('B3')->applyFromArray($style_col);
-			//$sheet->getStyle('C3')->applyFromArray($style_col);
-			//$sheet->getStyle('D3')->applyFromArray($style_col);
-			//$sheet->getStyle('E3')->applyFromArray($style_col);
-			// Panggil function view yang ada di SiswaModel untuk menampilkan semua data siswanya
-			$no = 1; // Untuk penomoran tabel, di awal set dengan 1
-			$numrow = 4; // Set baris pertama untuk isi tabel adalah baris ke 4
-			$status_approved=array(0=>'Diproses',1=>'Diterima',2=>'Ditolak');
-			
-			// Set width kolom
-			$sheet->getColumnDimension('A')->setWidth(15); // Set width kolom A
-			$sheet->getColumnDimension('B')->setWidth(20); // Set width kolom B
-			$sheet->getColumnDimension('C')->setWidth(25); // Set width kolom C
-			$sheet->getColumnDimension('D')->setWidth(20); // Set width kolom D
-			$sheet->getColumnDimension('E')->setWidth(20); // Set width kolom D
-			$sheet->getColumnDimension('F')->setWidth(20);  // Set width kolom D
-			$sheet->getColumnDimension('G')->setWidth(20);  // Set width kolom D
-			$sheet->getColumnDimension('H')->setWidth(20);  // Set width kolom D
-			$sheet->getColumnDimension('I')->setWidth(20);  // Set width kolom D
-			$sheet->getColumnDimension('J')->setWidth(20);  // Set width kolom D
-			$sheet->getColumnDimension('K')->setWidth(20);  // Set width kolom D
-			$sheet->getColumnDimension('L')->setWidth(20);  // Set width kolom D
-			$sheet->getColumnDimension('M')->setWidth(20);  // Set width kolom D
-			$sheet->getColumnDimension('N')->setWidth(20);  // Set width kolom D
-			$sheet->getColumnDimension('O')->setWidth(20);  // Set width kolom D
-			$sheet->getColumnDimension('P')->setWidth(20);  // Set width kolom D
-			$sheet->getColumnDimension('Q')->setWidth(20);  // Set width kolom D
-			
-			// Set height semua kolom menjadi auto (mengikuti height isi dari kolommnya, jadi otomatis)
-			$sheet->getDefaultRowDimension()->setRowHeight(-1);
-			// Set orientasi kertas jadi LANDSCAPE
-			$sheet->getPageSetup()->setOrientation(\PhpOffice\PhpSpreadsheet\Worksheet\PageSetup::ORIENTATION_LANDSCAPE);
-			// Set judul file excel nya
-			$sheet->setTitle("Slip");
-			// Proses file excel
-			header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-			header('Content-Disposition: attachment; filename="Slip Gaji.xlsx"'); // Set nama file excel nya
-			header('Cache-Control: max-age=0');
-			$writer = new Xlsx($spreadsheet);
-			$writer->save('php://output');
-	
+		//Attendance
+		
+        $this->load->view('templates/header', $data);
+        $this->load->view('templates/sidebar_admin', $data);
+        $this->load->view('config/form', $data);
+        $this->load->view('templates/footer');
+	}
+    function submit(){
+        $webmaster_id=$this->session->userdata('webmaster_id');
+        $id = $this->input->post('id');
+            $GetColumns = GetColumns('tb_setup_company');
+            foreach($GetColumns as $r)
+            {
+                $data[$r['Field']] = $this->input->post($r['Field']);
+                $data[$r['Field']."_temp"] = $this->input->post($r['Field']."_temp");
+    
+                if(!$data[$r['Field']] && !$data[$r['Field']."_temp"]) unset($data[$r['Field']]);
+                unset($data[$r['Field']."_temp"]);
+            }	
+            /* if(!$this->input->post('is_active')){$data['is_active']='InActive';}
+            else{$data['is_active']='Active';} */
+            
+            if($id != NULL && $id != '')
+            {
+                /* if(!$this->input->post('password')){unset($data['password']);}
+                else{$data['password']=md5($this->config->item('encryption_key').$this->input->post("password"));} */
+                $data['modify_user_id'] = $webmaster_id;
+                $data['modify_date']=date("Y-m-d");
+                $this->db->where("id", $id);
+                $this->db->update('tb_setup_company', $data);
+                
+                $this->session->set_flashdata("message", 'Sukses diupdate');
+            }
+            else
+            {
+                $data['create_user_id'] = $webmaster_id;
+                $data['create_date'] = date("Y-m-d H:i:s");
+                $this->db->insert('tb_setup_company', $data);
+                $id = $this->db->insert_id();
+                $this->session->set_flashdata("message", 'Sukses ditambahkan');
+            }
+            
+            redirect('config/form');
+            
     }
     
 }

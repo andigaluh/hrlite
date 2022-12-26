@@ -626,4 +626,16 @@ class Admin_model extends CI_model
         return $query;
     }
 
+    function getPayrollEmployeeByBulanTahun($kodepegawai,$bulan_tahun) 
+    {
+        $this->db->select('tb_payroll_employee.bulan_tahun as bulan_tahun, tb_payroll_employee.kode_pegawai as kode_pegawai, tb_payroll_employee.jenis_payslip as jenis_payslip, tb_payroll_employee.amount_salary as amount_salary, tb_payroll_employee.amount_total_allowance as amount_total_allowance, tb_payroll_employee.amount_total_deduction as amount_total_deduction, tb_payroll_employee.net_salary as net_salary, mst_pegawai.nama_lengkap as nama_lengkap');
+        $this->db->from('tb_payroll_employee');
+        $this->db->join('mst_pegawai', 'tb_payroll_employee.kode_pegawai = mst_pegawai.kode_pegawai');
+        $this->db->where('tb_payroll_employee.kode_pegawai', $kodepegawai);
+        $this->db->where('tb_payroll_employee.bulan_tahun', $bulan_tahun);
+        $this->db->order_by('tb_payroll_employee.id_payroll_employee', 'DESC');
+        $query = $this->db->get();
+        return $query;
+    }
+
 }
